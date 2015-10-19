@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import sys
 
+import django
 from django.conf import settings
+
 
 def configure():
 
@@ -10,19 +12,25 @@ def configure():
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
                 'NAME': ':memory:',
-                }
+            }
         },
         INSTALLED_APPS=(
             'django.contrib.sites',
             'django_faker',
             'django_options',
             'picklefield',
-            'django_extensions',
-            ),
+            # 'django_extensions',
+        ),
         SITE_ID=1,
     )
 
-if not settings.configured: configure()
+if not settings.configured:
+    configure()
+
+try:
+    django.setup()
+except Exception:
+    pass
 
 
 def runtests(app_labels=None, verbosity=1):
@@ -34,7 +42,6 @@ def runtests(app_labels=None, verbosity=1):
 
 
 if __name__ == '__main__':
-    import sys
     verbosity = 1
     args = sys.argv[1:]
     idx = args.index('-v') if '-v' in args else -1
@@ -43,5 +50,3 @@ if __name__ == '__main__':
         verbosity = int(args.pop(idx)) if len(args) > idx else 2
 
     runtests(args, verbosity=verbosity)
-
-

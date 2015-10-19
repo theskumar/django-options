@@ -42,3 +42,4 @@ class Option(models.Model):
         unique_together = ('site', 'key',)
         verbose_name = _('Option')
         verbose_name_plural = _('Options')
+        app_label = 'django_options'

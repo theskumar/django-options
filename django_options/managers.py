@@ -18,14 +18,19 @@ class OptionManager(CurrentSiteManager):
         self.__is_validated = False
         super(OptionManager, self).__init__(**kwargs)
 
-    def get_queryset(self):
+    def _get_queryset(self):
         # monkey patch for CurrentSiteManage
         # that allows to change site_id
-        if not self.site_id:
-            return super(OptionManager, self).get_query_set()
-        return super(CurrentSiteManager, self).get_query_set().filter(**{self.__field_name + '__id__exact': self.site_id})
+        try:
+            qs = super(OptionManager, self).get_queryset()
+        except AttributeError:
+            qs = super(OptionManager, self).get_query_set()
 
-    get_query_set = get_queryset
+        if not self.site_id:
+            return qs
+        return qs.filter(**{self.__field_name + '__id__exact': self.site_id})
+
+    get_queryset = _get_queryset
 
     def clear(self):
         self.all_options = None
@@ -41,11 +46,11 @@ class OptionManager(CurrentSiteManager):
         """
         if self.all_options is None:
 
-            all_options_db = self.get_query_set().filter(autoload=True).values()
+            all_options_db = self.get_queryset().filter(autoload=True).values()
 
             if not any(all_options_db):
                 # try to load all
-                all_options_db = self.get_query_set().all().values()
+                all_options_db = self.get_queryset().all().values()
 
             self.all_options = {}
 
@@ -82,25 +87,24 @@ class OptionManager(CurrentSiteManager):
             value = self.single_options[key]
 
         elif key in self.all_options:
-            value = self.get_query_set().model( value=self.all_options[key] ).value
+            value = self.get_queryset().model(value=self.all_options[key]).value
             # to prevent double decoding
             self.single_options[key] = value
 
         else:
             try:
-                opt = self.get_query_set().get( key=key )
+                opt = self.get_queryset().get(key=key)
                 # already deserialized
                 value = opt.value
                 # remember that
-                self.single_options[ key ] = value
+                self.single_options[key] = value
 
-            except self.get_query_set().model.DoesNotExist:
+            except self.get_queryset().model.DoesNotExist:
                 self.not_options[key] = True
                 return default
 
         # maybe deserialize json
         return value
-
 
     def update_option(self, key, new_value, **kwargs):
         """
@@ -148,8 +152,7 @@ class OptionManager(CurrentSiteManager):
 
         option_value_changed.send(self, old_value=old_value, new_value=new_value, option=key)
 
-        return self.get_query_set().filter(key=key).update(value=new_value) == 1
-
+        return self.get_queryset().filter(key=key).update(value=new_value) == 1
 
     def add_option(self, key, value, autoload=True):
         """
@@ -187,7 +190,7 @@ class OptionManager(CurrentSiteManager):
                 return False
 
         try:
-            option = self.get_query_set().create(key=key, site_id=self.get_site_id(), value=value, autoload=autoload)
+            option = self.get_queryset().create(key=key, site_id=self.get_site_id(), value=value, autoload=autoload)
         except IntegrityError:
             return False
 
@@ -220,7 +223,7 @@ class OptionManager(CurrentSiteManager):
         key = key.strip()
         if not key: return None
 
-        OptionQuery = self.get_query_set()
+        OptionQuery = self.get_queryset()
 
         try:
             opt = OptionQuery.get( key=key )

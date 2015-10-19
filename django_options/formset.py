@@ -1,10 +1,14 @@
 from django import forms
 from django.conf import settings
-from django.contrib.admin.helpers import normalize_fieldsets, AdminReadonlyField, AdminField
+from django.contrib.admin.helpers import AdminReadonlyField, AdminField
 from django.contrib.admin.templatetags.admin_static import static
 from django.utils.safestring import mark_safe
 
+from .compat import normalize_fieldsets
+
+
 class AdminForm(object):
+
     def __init__(self, form, fieldsets, readonly_fields=None):
         self.form, self.fieldsets = form, normalize_fieldsets(fieldsets)
         if readonly_fields is None:
